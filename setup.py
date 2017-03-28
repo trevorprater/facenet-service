@@ -8,4 +8,4 @@ setup(name='facenet-service',
       author='Youfie Technologies Inc',
       author_email='trevor@youfie.io',
       url='https://github.com/trevorprater/facial/',
-      packages=['src', 'src.align', 'src.models', 'test'], )
+      packages=['align', 'models', 'test'], )

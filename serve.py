@@ -10,7 +10,7 @@ import numpy as np
 import requests
 
 import facenet
-import align.detect_face
+import align.detect_face as detect_face
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -28,7 +28,7 @@ def load_and_align_data(images_metadata, image_size, margin, gpu_memory_fraction
     for url in images_metadata.keys():
         img = misc.imread(images_metadata[url]['filepath'])
         img_size = np.asarray(img.shape)[0:2]
-        bounding_boxes, _ =  align.detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
+        bounding_boxes, _ =  detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
         for box_ctr, bounding_box in enumerate(bounding_boxes):
             det = np.squeeze(bounding_boxes[box_ctr,0:4])
             bb = np.zeros(4, dtype=np.int32)
@@ -114,7 +114,7 @@ if __name__ == '__main__':
             with tf.Graph().as_default():
                 detect_sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
                 with detect_sess.as_default():
-                    pnet, rnet, onet = align.detect_face.create_mtcnn(detect_sess, None)
+                    pnet, rnet, onet = detect_face.create_mtcnn(detect_sess, None)
                     print("Starting the API")
-                    app.run()
+                    app.run(host='0.0.0.0')
 
