@@ -210,9 +210,9 @@ class PNet(Network):
          .conv(3, 3, 32,
                1, 1, padding='VALID',
                relu=False,
-               name='conv3').prelu(name='PReLU3')
-         .conv(1, 1, 2, 1, 1, relu=False,
-               name='conv4-1').softmax(3, name='prob1'))
+               name='conv3').prelu(name='PReLU3').conv(
+                   1, 1, 2, 1, 1, relu=False,
+                   name='conv4-1').softmax(3, name='prob1'))
 
         (self.feed('PReLU3')  #pylint: disable=no-value-for-parameter
          .conv(1, 1, 4, 1, 1, relu=False,
@@ -230,8 +230,8 @@ class RNet(Network):
          .conv(3, 3, 48,
                1, 1, padding='VALID',
                relu=False,
-               name='conv2').prelu(name='prelu2')
-         .max_pool(3, 3, 2, 2, padding='VALID',
+               name='conv2').prelu(name='prelu2').max_pool(
+                   3, 3, 2, 2, padding='VALID',
                    name='pool2')
          .conv(2, 2, 64,
                1, 1, padding='VALID',
@@ -255,18 +255,18 @@ class ONet(Network):
          .conv(3, 3, 64,
                1, 1, padding='VALID',
                relu=False,
-               name='conv2').prelu(name='prelu2')
-         .max_pool(3, 3, 2, 2, padding='VALID',
+               name='conv2').prelu(name='prelu2').max_pool(
+                   3, 3, 2, 2, padding='VALID',
                    name='pool2')
          .conv(3, 3, 64,
                1, 1, padding='VALID',
                relu=False,
                name='conv3').prelu(name='prelu3')
-         .max_pool(2, 2, 2, 2, name='pool3')
-         .conv(2, 2, 128,
-               1, 1, padding='VALID',
-               relu=False,
-               name='conv4').prelu(name='prelu4')
+         .max_pool(2, 2, 2, 2, name='pool3').conv(
+             2, 2, 128,
+             1, 1, padding='VALID',
+             relu=False,
+             name='conv4').prelu(name='prelu4')
          .fc(256, relu=False, name='conv5').prelu(name='prelu5')
          .fc(2, relu=False, name='conv6-1').softmax(1, name='prob1'))
 
@@ -487,8 +487,8 @@ def bulk_detect_face(images, detection_window_size_ratio, pnet, rnet, onet,
 
             im_data = imresample(images[index], (hs, ws))
             im_data = (im_data - 127.5) * 0.0078125
-            img_y = np.transpose(im_data, (1, 0, 2)
-                                 )  # caffe uses different dimensions ordering
+            img_y = np.transpose(
+                im_data, (1, 0, 2))  # caffe uses different dimensions ordering
             images_obj_per_resolution[(ws, hs)].append({'scale': scale,
                                                         'image': img_y,
                                                         'index': index})
