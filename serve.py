@@ -1,6 +1,9 @@
 import json, argparse, time
 import os, os.path
 import uuid
+import base64
+from PIL import Image
+from io import BytesIO
 
 from scipy import misc
 from flask import Flask, request
@@ -16,20 +19,12 @@ app = Flask(__name__)
 cors = CORS(app)
 
 
-def _download_image(url):
-    img_uuid = str(uuid.uuid4())
-    filepath = "/tmp/" + img_uuid
-    exec_cmd = "wget -O {} {}".format(filepath, url)
-    os.system(exec_cmd)
-    if os.path.isfile(filepath):
-        return filepath
-
-
 def load_and_align_data(images_metadata, image_size, margin,
                         gpu_memory_fraction):
     faces = []
-    for url in images_metadata.keys():
-        img = misc.imread(images_metadata[url]['filepath'])
+    for img_item in images_metadata['images']:
+        im = Image.open(BytesIO(base64.b64decode(img_item['b64_bytes'])))
+        img = misc.fromimage(im, flatten=False, mode='RGB')
         img_size = np.asarray(img.shape)[0:2]
         bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet,
                                                     onet, threshold, factor)
@@ -44,11 +39,7 @@ def load_and_align_data(images_metadata, image_size, margin,
             aligned = misc.imresize(cropped, (image_size, image_size),
                                     interp='bilinear')
             prewhitened = facenet.prewhiten(aligned)
-            faces.append({'url': url, 'prewhitened': prewhitened, 'bb': bb})
-            #img_list.append((prewhitened, image_paths[i], bb))
-            #images = np.stack(img_list)
-            #return images
-            #return img_list
+            faces.append({'url': img_item['url'], 'prewhitened': prewhitened, 'bb': bb})
     return faces
 
 
@@ -59,42 +50,37 @@ def embed():
     data = request.data.decode("utf-8")
     if data == "":
         params = request.form
-        photo_urls = json.loads(params["photos"])
+        photos = json.loads(params)
     else:
-        params = json.loads(data)
-        photo_urls = params["photos"]
+        photos = json.loads(data)
+	
 
     images_metadata = {}
-    for url in photo_urls:
-        filepath = _download_image(url)
-        if filepath:
-            images_metadata[url] = {'filepath': filepath, 'faces': []}
+    for photo in photos['images']:
+	images_metadata[photo['url']] = {'faces': []}
 
-    #images = load_and_align_data(filepaths, args.image_size, args.margin, args.gpu_memory)
-    faces = load_and_align_data(images_metadata, args.image_size, args.margin,
+    faces = load_and_align_data(photos, args.image_size, args.margin,
                                 args.gpu_memory)
-    face_bytes = [face['prewhitened'] for face in faces]
-    images = np.stack(face_bytes)
 
-    embs = embed_sess.run(embeddings,
-                          feed_dict={images_placeholder: images,
-                                     phase_train_placeholder: False})
+    if len(faces) > 0:
+        face_bytes = [face['prewhitened'] for face in faces]
+        images = np.stack(face_bytes)
 
-    print('number of faces to embed: {}'.format(len(faces)))
-    print('number of embeddings returned: {}'.format(len(embs)))
+        embs = embed_sess.run(embeddings,
+                              feed_dict={images_placeholder: images,
+                                      phase_train_placeholder: False})
 
-    for i, face in enumerate(faces):
-        url = face['url']
-        bb = face['bb']
-        images_metadata[url]['faces'].append({'bb': bb.tolist(),
+        for i, face in enumerate(faces):
+            url = face['url']
+            bb = face['bb']
+            images_metadata[url]['faces'].append({'bb': bb.tolist(),
                                               'embedding': embs[i].tolist()})
-        try:
-            os.system('rm {} &'.format(images_metadata[url]['filepath']))
-            del images_metadata[url]['filepath']
-        except KeyError:
-            pass
+    results = {'images': []}
+    for url in images_metadata.keys():
+        images_metadata[url].update({'url': url})
+        results['images'].append(images_metadata[url])
 
-    json_data = json.dumps(images_metadata)
+    json_data = json.dumps(results)
     return json_data
 
 
