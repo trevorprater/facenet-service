@@ -16,7 +16,11 @@ import psycopg2
 import facenet
 import align.detect_face as detect_face
 
-CONN = psycopg2.connect("dbname=facenet user=postgres")
+DB_HOST, DB_PORT = os.getenv("FACENET_DB_ADDR").split(":")
+DB_PASSWORD = os.getenv("FACENET_DB_PASSWORD")
+DB_USER = os.getenv("FACENET_DB_USER")
+
+CONN = psycopg2.connect("dbname=facenet user={} host={} password={}".format(DB_USER, DB_HOST, DB_PASSWORD))
 CUR = CONN.cursor()
 
 def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
@@ -72,7 +76,7 @@ def begin_message_consumption(consumer):
                         'bb': bb_dict,
                         'embedding': embs[ndx].tolist()
                     })
-                print image['url'], "num faces = {}".format(len(image['faces']))
+                print(image['url'], "num faces = {}".format(len(image['faces'])))
                 insert_photo_to_db(image)
 
 
@@ -80,7 +84,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--model_dir",
-        default="models/20170216-091149",
+        default="/models/20170216-091149",
         type=str,
         help="directory containing the model")
     parser.add_argument(
