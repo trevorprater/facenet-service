@@ -4,17 +4,20 @@ import uuid
 import base64
 from PIL import Image
 from io import BytesIO
-from pprint import pprint
+import uuid
 
 from scipy import misc
 import tensorflow as tf
 import numpy as np
 import requests
 from pykafka import KafkaClient
+import psycopg2
 
 import facenet
 import align.detect_face as detect_face
 
+CONN = psycopg2.connect("dbname=facenet user=postgres")
+CUR = CONN.cursor()
 
 def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
 
@@ -37,6 +40,14 @@ def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
         prewhitened = facenet.prewhiten(aligned)
         image['faces'].append({'prewhitened': prewhitened, 'bb': bb})
     return image
+
+def insert_photo_to_db(photo):
+    photo_id = str(uuid.uuid4())
+    CUR.execute("INSERT INTO photos(id, url, parent_url, sha256) VALUES ('{}', '{}', '{}', '{}')".format(photo_id, photo['url'], photo['parent_url'], photo['sha256']))
+    for face in photo['faces']:
+        CUR.execute("INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(photo_id, face['bb']['top_left_x'], face['bb']['top_left_y'], face['bb']['bottom_right_x'], face['bb']['bottom_right_y'],'{' + ",".join([str(emb) for emb in face['embedding']])+ '}'))
+    CONN.commit()
+
 
 
 def begin_message_consumption(consumer):
@@ -62,6 +73,7 @@ def begin_message_consumption(consumer):
                         'embedding': embs[ndx].tolist()
                     })
                 print image['url'], "num faces = {}".format(len(image['faces']))
+                insert_photo_to_db(image)
 
 
 if __name__ == '__main__':
