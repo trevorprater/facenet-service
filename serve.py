@@ -48,12 +48,14 @@ def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
 
 def insert_photo_to_db(photo):
     photo_id = str(uuid.uuid4())
-    CUR.execute("INSERT INTO photos(id, url, parent_url, sha256) VALUES ('{}', '{}', '{}', '{}')".format(photo_id, photo['url'], photo['parent_url'], photo['sha256']))
-    for face in photo['faces']:
-        CUR.execute("INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(photo_id, face['bb']['top_left_x'], face['bb']['top_left_y'], face['bb']['bottom_right_x'], face['bb']['bottom_right_y'],'{' + ",".join([str(emb) for emb in face['embedding']])+ '}'))
-    CONN.commit()
 
-
+    try:
+        CUR.execute("INSERT INTO photos(id, url, parent_url, sha256) VALUES ('{}', '{}', '{}', '{}')".format(photo_id, photo['url'], photo['parent_url'], photo['sha256']))
+        for face in photo['faces']:
+            CUR.execute("INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(photo_id, face['bb']['top_left_x'], face['bb']['top_left_y'], face['bb']['bottom_right_x'], face['bb']['bottom_right_y'],'{' + ",".join([str(emb) for emb in face['embedding']])+ '}'))
+        CONN.commit()
+    except psycopg2.IntegrityError as e:
+        CONN.rollback()
 
 def begin_message_consumption(consumer):
     while 1:
