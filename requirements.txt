@@ -1,7 +1,5 @@
 click==6.7
 cycler==0.10.0
-Flask==0.12
-Flask-Cors==3.0.2
 funcsigs==1.0.2
 functools32==3.2.3.post2
 h5py==2.7.0
