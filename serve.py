@@ -36,12 +36,10 @@ def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
             cropped, (image_size, image_size), interp='bilinear')
         prewhitened = facenet.prewhiten(aligned)
         image['faces'].append({'prewhitened': prewhitened, 'bb': bb})
-
     return image
 
 
 def begin_message_consumption(consumer):
-    photos = []
     while 1:
         msg = consumer.consume()
         if msg:
@@ -58,12 +56,12 @@ def begin_message_consumption(consumer):
                         phase_train_placeholder: False
                     })
                 for ndx, face in enumerate(image['faces']):
+                    bb_dict = dict(zip(['top_left_x', 'top_left_y', 'bottom_right_x', 'bottom_right_y'], face['bb'].tolist()))
                     image['faces'][ndx].update({
-                        'bb': face['bb'].tolist(),
+                        'bb': bb_dict,
                         'embedding': embs[ndx].tolist()
                     })
-                pprint(image)
-                print '\n' * 8
+                print image['url'], "num faces = {}".format(len(image['faces']))
 
 
 if __name__ == '__main__':
