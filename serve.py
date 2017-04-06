@@ -5,6 +5,7 @@ import base64
 from PIL import Image
 from io import BytesIO
 import uuid
+import logging
 
 from scipy import misc
 import tensorflow as tf
@@ -76,7 +77,7 @@ def begin_message_consumption(consumer):
                         'bb': bb_dict,
                         'embedding': embs[ndx].tolist()
                     })
-                print(image['url'], "num faces = {}".format(len(image['faces'])))
+                logging.info(image['url'], "num faces = {}".format(len(image['faces'])))
                 insert_photo_to_db(image)
 
 
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     threshold = [0.6, 0.7, 0.7]  # three steps' threshold
     factor = 0.709  # scale factor
 
-    print("Loading the model...")
+    logging.info("Loading the model...")
     with tf.Graph().as_default() as graph:
         with tf.Session() as embed_sess:
             gpu_options = tf.GPUOptions(
@@ -115,7 +116,7 @@ if __name__ == '__main__':
                 with detect_sess.as_default():
                     pnet, rnet, onet = detect_face.create_mtcnn(detect_sess,
                                                                 None)
-                    print("starting the consumer")
+                    logging.info("starting the consumer")
                     client = KafkaClient("104.196.19.209:9092")
                     topic = client.topics["facenet-new"]
                     consumer = topic.get_balanced_consumer(

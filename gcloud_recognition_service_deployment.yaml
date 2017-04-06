@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: recognition-service
 spec:
-  replicas: 10
+  replicas: 1
   template:
     metadata:
       labels:
@@ -11,7 +11,7 @@ spec:
         tier: backend
     spec:
       containers:
-        - image: gcr.io/youfie-983ce/github-trevorprater-facenet-service:eda7d9e2c6989565863488abf3f9eae7ec2d360e
+        - image: gcr.io/youfie-983ce/github-trevorprater-facenet-service:840bdb5b456877aa7bd4c3bf961a6d83a751c3ad
           name: recognition-service
           env:
             - name: GET_HOSTS_FROM
