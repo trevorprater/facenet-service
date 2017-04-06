@@ -10,6 +10,7 @@ COPY align /align
 
 
 RUN pip install -r /requirements.txt
+RUN pip install --upgrade pykafka
 
 CMD [ "mkdir", "/models"]
 RUN mkdir /models
