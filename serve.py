@@ -21,8 +21,10 @@ DB_HOST, DB_PORT = os.getenv("FACENET_DB_ADDR").split(":")
 DB_PASSWORD = os.getenv("FACENET_DB_PASSWORD")
 DB_USER = os.getenv("FACENET_DB_USER")
 
-CONN = psycopg2.connect("dbname=facenet user={} host={} password={}".format(DB_USER, DB_HOST, DB_PASSWORD))
+CONN = psycopg2.connect("dbname=facenet user={} host={} password={}".format(
+    DB_USER, DB_HOST, DB_PASSWORD))
 CUR = CONN.cursor()
+
 
 def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
 
@@ -46,16 +48,26 @@ def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
         image['faces'].append({'prewhitened': prewhitened, 'bb': bb})
     return image
 
+
 def insert_photo_to_db(photo):
     photo_id = str(uuid.uuid4())
 
     try:
-        CUR.execute("INSERT INTO photos(id, url, parent_url, sha256) VALUES ('{}', '{}', '{}', '{}')".format(photo_id, photo['url'], photo['parent_url'], photo['sha256']))
+        CUR.execute(
+            "INSERT INTO photos(id, url, parent_url, sha256) VALUES ('{}', '{}', '{}', '{}')".
+            format(photo_id, photo['url'], photo['parent_url'], photo[
+                'sha256']))
         for face in photo['faces']:
-            CUR.execute("INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".format(photo_id, face['bb']['top_left_x'], face['bb']['top_left_y'], face['bb']['bottom_right_x'], face['bb']['bottom_right_y'],'{' + ",".join([str(emb) for emb in face['embedding']])+ '}'))
+            CUR.execute(
+                "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".
+                format(photo_id, face['bb']['top_left_x'], face['bb'][
+                    'top_left_y'], face['bb']['bottom_right_x'], face['bb'][
+                        'bottom_right_y'], '{' + ",".join(
+                            [str(emb) for emb in face['embedding']]) + '}'))
         CONN.commit()
     except psycopg2.IntegrityError as e:
         CONN.rollback()
+
 
 def begin_message_consumption(consumer):
     while 1:
@@ -74,12 +86,17 @@ def begin_message_consumption(consumer):
                         phase_train_placeholder: False
                     })
                 for ndx, face in enumerate(image['faces']):
-                    bb_dict = dict(zip(['top_left_x', 'top_left_y', 'bottom_right_x', 'bottom_right_y'], face['bb'].tolist()))
+                    bb_dict = dict(
+                        zip([
+                            'top_left_x', 'top_left_y', 'bottom_right_x',
+                            'bottom_right_y'
+                        ], face['bb'].tolist()))
                     image['faces'][ndx].update({
                         'bb': bb_dict,
                         'embedding': embs[ndx].tolist()
                     })
-                logging.info(image['url'], "num faces = {}".format(len(image['faces'])))
+                logging.info(image['url'],
+                             "num faces = {}".format(len(image['faces'])))
                 insert_photo_to_db(image)
 
 
