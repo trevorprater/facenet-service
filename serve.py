@@ -118,7 +118,7 @@ if __name__ == '__main__':
                                                                 None)
                     logging.info("starting the consumer")
                     client = KafkaClient("104.196.19.209:9092")
-                    topic = client.topics["facenet-new"]
+                    topic = client.topics["facenet-test"]
                     consumer = topic.get_balanced_consumer(
                         consumer_group="charlie",
                         auto_commit_enable=True,
