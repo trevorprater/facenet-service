@@ -27,7 +27,7 @@ CONN = psycopg2.connect("dbname=facenet user={} host={} password={}".format(
 CUR = CONN.cursor()
 
 KAFKA_CONF = {
-    'bootstrap.servers': '104.196.19.209:9092',
+    'bootstrap.servers': '10.142.0.3:9092',
     'group.id': 'charlie',
     'session.timeout.ms': 6000,
     'api.version.request': True,
