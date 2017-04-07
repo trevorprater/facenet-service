@@ -27,3 +27,4 @@ tensorflow==1.0.0
 Werkzeug==0.12.1
 pykafka
 psycopg2
+confluent-kafka

@@ -11,8 +11,8 @@ from scipy import misc
 import tensorflow as tf
 import numpy as np
 import requests
-from pykafka import KafkaClient
 import psycopg2
+from confluent_kafka import Consumer, KafkaError
 
 import facenet
 import align.detect_face as detect_face
@@ -25,19 +25,24 @@ CONN = psycopg2.connect("dbname=facenet user={} host={} password={}".format(
     DB_USER, DB_HOST, DB_PASSWORD))
 CUR = CONN.cursor()
 
+KAFKA_CONF = {
+    'bootstrap.servers': '104.196.19.209:9092',
+    'group.id': 'charlie',
+    'session.timeout.ms': 6000,
+    'default.topic.config': {
+        'auto.offset.reset': 'smallest'
+    }
+}
+
 
 def create_new_consumer():
     failures = 0
 
     while failures <= 5:
         try:
-            client = KafkaClient("104.196.19.209:9092")
-            topic = client.topics["facenet-test"]
-            consumer = topic.get_balanced_consumer(
-                consumer_group="charlie",
-                auto_commit_enable=True,
-                zookeeper_connect='104.196.19.209:2181',
-                managed=True)
+            consumer = confluent_kafka.Consumer(**conf)
+            c.subscribe(['facenet-test'])
+
             return consumer
         except Exception as e:
             failures += 1
@@ -94,7 +99,7 @@ def begin_message_consumption(consumer):
     while 1:
         msg = None
         try:
-            msg = consumer.consume()
+            msg = c.poll(timeout=1.0)
         except Exception as e:
             time.sleep(5)
             num_failures += 1
@@ -102,9 +107,18 @@ def begin_message_consumption(consumer):
             if num_failures > 10:
                 raise Exception("CANNOT CONNECT TO KAFKA: {}".format(e))
 
+        if msg is None:
+            continue
+
+        if msg.error():
+            if msg.error().code() == KafkaError.__PARTITION_EOF:
+                sys.stderr.write("%% %s [%d] reached end at offset %d\n" %
+                                 (msg.topic(), msg.partition(), msg.offset()))
+            elif msg.error():
+                raise KafkaException(msg.error())
         if msg:
             num_failures = 0
-            image = json.loads(msg.value)
+            image = json.loads(msg.value())
             image = load_and_align_data(image, args.image_size, args.margin,
                                         args.gpu_memory)
             if len(image['faces']) > 0:
