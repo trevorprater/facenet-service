@@ -29,7 +29,7 @@ ADD requirements.txt /
 ADD setup.py /
 ADD facenet.py /
 ADD serve.py /
-ADD deps/confluent-kafka-python /confluent-kafka-python
+ADD deps/docker-deps /confluent-kafka-python
 COPY align /align
 
 WORKDIR /confluent-kafka-python
