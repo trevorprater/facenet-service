@@ -47,7 +47,7 @@ def create_new_consumer():
             return consumer
         except Exception as e:
             logging.info(e)
-            sys.stderr.write(e)
+            sys.stderr.write("failed to create consumer: {}".format(e))
             failures += 1
             time.sleep(5)
 
