@@ -99,7 +99,7 @@ def begin_message_consumption(consumer):
     while 1:
         msg = None
         try:
-            msg = c.poll(timeout=1.0)
+            msg = consumer.poll(timeout=1.0)
         except Exception as e:
             logging.info(e)
 
