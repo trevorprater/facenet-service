@@ -29,6 +29,7 @@ KAFKA_CONF = {
     'bootstrap.servers': '104.196.19.209:9092',
     'group.id': 'charlie',
     'session.timeout.ms': 6000,
+    'api.version.request': True,
     'default.topic.config': {
         'auto.offset.reset': 'smallest'
     }
@@ -37,14 +38,15 @@ KAFKA_CONF = {
 
 def create_new_consumer():
     failures = 0
+    consumer = None
     while failures <= 5:
         try:
             consumer = confluent_kafka.Consumer(**conf)
-            consumer.subscribe(['facenet-test'])
-
+            consumer.subscribe(['recservice'])
             return consumer
         except Exception as e:
             logging.info(e)
+            sys.stderr.write(e)
             failures += 1
             time.sleep(5)
 
