@@ -37,14 +37,14 @@ KAFKA_CONF = {
 
 def create_new_consumer():
     failures = 0
-
     while failures <= 5:
         try:
             consumer = confluent_kafka.Consumer(**conf)
-            c.subscribe(['facenet-test'])
+            consumer.subscribe(['facenet-test'])
 
             return consumer
         except Exception as e:
+            logging.info(e)
             failures += 1
             time.sleep(5)
 
@@ -101,6 +101,8 @@ def begin_message_consumption(consumer):
         try:
             msg = c.poll(timeout=1.0)
         except Exception as e:
+            logging.info(e)
+
             time.sleep(5)
             num_failures += 1
             consumer = create_new_consumer()
