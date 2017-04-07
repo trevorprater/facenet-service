@@ -26,6 +26,25 @@ CONN = psycopg2.connect("dbname=facenet user={} host={} password={}".format(
 CUR = CONN.cursor()
 
 
+def create_new_consumer():
+    failures = 0
+
+    while failures <= 5:
+        try:
+            client = KafkaClient("104.196.19.209:9092")
+            topic = client.topics["facenet-test"]
+            consumer = topic.get_balanced_consumer(
+                consumer_group="charlie",
+                auto_commit_enable=True,
+                zookeeper_connect='104.196.19.209:2181')
+            return consumer
+        except Exception as e:
+            failures += 1
+            time.sleep(5)
+
+        return None
+
+
 def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
 
     im = Image.open(BytesIO(base64.b64decode(image['b64_bytes'])))
@@ -70,9 +89,20 @@ def insert_photo_to_db(photo):
 
 
 def begin_message_consumption(consumer):
+    num_failures = 0
     while 1:
-        msg = consumer.consume()
+        msg = None
+        try:
+            msg = consumer.consume()
+        except Exception as e:
+            time.sleep(5)
+            num_failures += 1
+            consumer = create_new_consumer()
+            if num_failures > 10:
+                raise Exception("CANNOT CONNECT TO KAFKA: {}".format(e))
+
         if msg:
+            num_failures = 0
             image = json.loads(msg.value)
             image = load_and_align_data(image, args.image_size, args.margin,
                                         args.gpu_memory)
@@ -136,10 +166,5 @@ if __name__ == '__main__':
                     pnet, rnet, onet = detect_face.create_mtcnn(detect_sess,
                                                                 None)
                     logging.info("starting the consumer")
-                    client = KafkaClient("104.196.19.209:9092")
-                    topic = client.topics["facenet-test"]
-                    consumer = topic.get_balanced_consumer(
-                        consumer_group="charlie",
-                        auto_commit_enable=True,
-                        zookeeper_connect='104.196.19.209:2181')
+                    consumer = create_new_consumer()
                     begin_message_consumption(consumer)
