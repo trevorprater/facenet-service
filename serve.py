@@ -127,8 +127,8 @@ def begin_message_consumption(consumer):
                         'bb': bb_dict,
                         'embedding': embs[ndx].tolist()
                     })
-                loggging.info("{")
-                logging.info(image['url'], '"num_faces": {}'.format(len(image['faces'])))
+                logging.info("{")
+                logging.info('"num_faces": {}'.format(len(image['faces'])))
                 logging.info("}")
                 insert_photo_to_db(image)
 
