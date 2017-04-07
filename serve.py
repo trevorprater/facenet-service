@@ -1,5 +1,6 @@
 import json, argparse, time
 import os, os.path
+import sys
 import uuid
 import base64
 from PIL import Image
