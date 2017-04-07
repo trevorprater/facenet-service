@@ -98,11 +98,11 @@ def begin_message_consumption(consumer):
             continue
 
         if msg.error():
-            if msg.error().code() == KafkaError.__PARTITION_EOF:
-                sys.stderr.write("%% %s [%d] reached end at offset %d\n" %
+            if msg.error().code() == KafkaError._PARTITION_EOF:
+                logging.exception("%% %s [%d] reached end at offset %d\n" %
                                  (msg.topic(), msg.partition(), msg.offset()))
             else:
-                logging.info(msg.error())
+                logging.exception(msg.error())
 
         if msg and not msg.error():
             image = json.loads(msg.value())
@@ -128,7 +128,7 @@ def begin_message_consumption(consumer):
                         'embedding': embs[ndx].tolist()
                     })
                 logging.info(image['url'],
-                             "num faces = {}".format(len(image['faces'])))
+                        '{"num_faces": {}'.format(len(image['faces'])))
                 insert_photo_to_db(image)
 
 
