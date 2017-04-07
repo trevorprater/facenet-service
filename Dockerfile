@@ -29,9 +29,11 @@ ADD requirements.txt /
 ADD setup.py /
 ADD facenet.py /
 ADD serve.py /
+ADD deps/confluent-kafka-python /confluent-kafka-python
 COPY align /align
 
-
+RUN cd /confluent-kafka-python && python setup.py install
+RUN cd /
 RUN pip install -r /requirements.txt
 RUN pip install --upgrade pykafka
 

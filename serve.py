@@ -31,18 +31,22 @@ KAFKA_CONF = {
     'group.id': 'charlie',
     'session.timeout.ms': 6000,
     'api.version.request': True,
+    'receive.message.max.bytes': 204859424,
     'default.topic.config': {
         'auto.offset.reset': 'smallest'
     }
 }
 
+
 def print_assignment(consumer, partitions):
     logging.info(json.dumps(partitions))
+
 
 def create_new_consumer():
     consumer = confluent_kafka.Consumer(**conf)
     consumer.subscribe(['recservice'], on_assign=print_assignment)
     return consumer
+
 
 def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
 
