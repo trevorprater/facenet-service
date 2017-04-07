@@ -11,7 +11,7 @@ spec:
         tier: backend
     spec:
       containers:
-        - image: gcr.io/youfie-983ce/github-trevorprater-facenet-service:3619402006d95290181cdf2d6c2d8d14e14cb313
+        - image: gcr.io/youfie-983ce/github-trevorprater-facenet-service:199839b9109e0fb97cb998e25bcef53b0bf28983
           name: recognition-service
           env:
             - name: GET_HOSTS_FROM
