@@ -36,23 +36,13 @@ KAFKA_CONF = {
     }
 }
 
+def print_assignment(consumer, partitions):
+    logging.info(json.dumps(partitions))
 
 def create_new_consumer():
-    failures = 0
-    consumer = None
-    while failures <= 5:
-        try:
-            consumer = confluent_kafka.Consumer(**conf)
-            consumer.subscribe(['recservice'])
-            return consumer
-        except Exception as e:
-            logging.info(e)
-            sys.stderr.write("failed to create consumer: {}".format(e))
-            failures += 1
-            time.sleep(5)
-
-        return None
-
+    consumer = confluent_kafka.Consumer(**conf)
+    consumer.subscribe(['recservice'], on_assign=print_assignment)
+    return consumer
 
 def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
 
@@ -98,20 +88,8 @@ def insert_photo_to_db(photo):
 
 
 def begin_message_consumption(consumer):
-    num_failures = 0
     while 1:
-        msg = None
-        try:
-            msg = consumer.poll(timeout=1.0)
-        except Exception as e:
-            logging.info(e)
-
-            time.sleep(5)
-            num_failures += 1
-            consumer = create_new_consumer()
-            if num_failures > 10:
-                raise Exception("CANNOT CONNECT TO KAFKA: {}".format(e))
-
+        msg = consumer.poll(timeout=1.0)
         if msg is None:
             continue
 
@@ -119,10 +97,10 @@ def begin_message_consumption(consumer):
             if msg.error().code() == KafkaError.__PARTITION_EOF:
                 sys.stderr.write("%% %s [%d] reached end at offset %d\n" %
                                  (msg.topic(), msg.partition(), msg.offset()))
-            elif msg.error():
-                raise KafkaException(msg.error())
-        if msg:
-            num_failures = 0
+            else:
+                logging.info(msg.error())
+
+        if msg and not msg.error():
             image = json.loads(msg.value())
             image = load_and_align_data(image, args.image_size, args.margin,
                                         args.gpu_memory)
