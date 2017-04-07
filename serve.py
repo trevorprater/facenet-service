@@ -36,7 +36,8 @@ def create_new_consumer():
             consumer = topic.get_balanced_consumer(
                 consumer_group="charlie",
                 auto_commit_enable=True,
-                zookeeper_connect='104.196.19.209:2181')
+                zookeeper_connect='104.196.19.209:2181',
+                managed=True)
             return consumer
         except Exception as e:
             failures += 1
