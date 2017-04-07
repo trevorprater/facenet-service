@@ -43,7 +43,7 @@ def print_assignment(consumer, partitions):
 
 
 def create_new_consumer():
-    consumer = confluent_kafka.Consumer(**conf)
+    consumer = Consumer(**conf)
     consumer.subscribe(['recservice'], on_assign=print_assignment)
     return consumer
 
