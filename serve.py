@@ -38,13 +38,13 @@ KAFKA_CONF = {
 }
 
 
-def print_assignment(consumer, partitions):
-    logging.info(json.dumps(partitions))
+#def print_assignment(consumer, partitions):
+#    logging.info(json.dumps(partitions))
 
 
 def create_new_consumer():
     consumer = Consumer(**KAFKA_CONF)
-    consumer.subscribe(['recservice'], on_assign=print_assignment)
+    consumer.subscribe(['recservice'])#, on_assign=print_assignment)
     return consumer
 
 
