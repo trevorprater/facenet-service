@@ -28,7 +28,7 @@ RUN BUILD_DIR="$(mktemp -d)" && \
 ADD requirements.txt /
 ADD setup.py /
 ADD facenet.py /
-ADD serve.py /
+ADD consume.py /
 ADD deps/docker-deps /confluent-kafka-python
 COPY align /align
 
@@ -47,4 +47,4 @@ ARG LIBRDKAFKA_VER="0.9.4"
 
 
 CMD [ "python", "setup.py install"]
-CMD [ "python", "/serve.py"]
+CMD [ "python", "/consume.py"]
