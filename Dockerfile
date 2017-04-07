@@ -32,10 +32,10 @@ ADD serve.py /
 ADD deps/confluent-kafka-python /confluent-kafka-python
 COPY align /align
 
-RUN cd /confluent-kafka-python && python setup.py install
-RUN cd /
+WORKDIR /confluent-kafka-python
+RUN python setup.py install
+WORKDIR /
 RUN pip install -r /requirements.txt
-RUN pip install --upgrade pykafka
 
 CMD [ "mkdir", "/models"]
 RUN mkdir /models
