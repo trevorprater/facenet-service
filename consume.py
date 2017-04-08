@@ -44,7 +44,7 @@ KAFKA_CONF = {
 
 def create_new_consumer():
     consumer = Consumer(**KAFKA_CONF)
-    consumer.subscribe(['recservice'])#, on_assign=print_assignment)
+    consumer.subscribe(['bluefin'])#, on_assign=print_assignment)
     return consumer
 
 
