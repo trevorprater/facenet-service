@@ -28,7 +28,7 @@ CUR = CONN.cursor()
 
 KAFKA_CONF = {
     'bootstrap.servers': '10.142.0.3:9092',
-    'group.id': 'charlie',
+    'group.id': 'bravo',
     'session.timeout.ms': 6000,
     'api.version.request': True,
     'receive.message.max.bytes': 204859424,
