@@ -36,8 +36,9 @@ WORKDIR /confluent-kafka-python
 RUN python setup.py install
 WORKDIR /
 RUN pip install -r /requirements.txt
-ADD tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl /tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
-RUN pip install /tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
+RUN mkdir /tfpy
+ADD tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl /tfpy/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
+RUN pip install /tfpy/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
 
 CMD [ "mkdir", "/models"]
 RUN mkdir /models
@@ -48,5 +49,8 @@ ARG LIBRDKAFKA_NAME="librdkafka"
 ARG LIBRDKAFKA_VER="0.9.4"
 
 
-CMD [ "python", "setup.py install"]
-CMD [ "python", "/consume.py"]
+run mkdir /workdir
+WORKDIR /workdir
+
+CMD [ "python", "../setup.py install"]
+CMD [ "python", "../consume.py"]
