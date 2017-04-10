@@ -36,6 +36,8 @@ WORKDIR /confluent-kafka-python
 RUN python setup.py install
 WORKDIR /
 RUN pip install -r /requirements.txt
+ADD tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl /tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
+RUN pip install /tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
 
 CMD [ "mkdir", "/models"]
 RUN mkdir /models
