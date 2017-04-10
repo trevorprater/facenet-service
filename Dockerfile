@@ -3,7 +3,7 @@ FROM tensorflow/tensorflow:1.0.0
 # Install librdkafka
 #RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install
 #      openssl tar && \
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install libpcre3 libssl-dev libpcre3-dev wget zip gcc 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install libpcre3 libssl-dev libpcre3-dev wget zip gcc g++
 RUN BUILD_DIR="$(mktemp -d)" && \
 \
     export LIBRDKAFKA_VER=0.9.3 && wget -O "$BUILD_DIR/librdkafka.tar.gz" "https://github.com/edenhill/librdkafka/archive/v$LIBRDKAFKA_VER.tar.gz" && \
@@ -38,6 +38,7 @@ WORKDIR /
 RUN pip install -r /requirements.txt
 RUN pip uninstall -y six
 RUN pip install six --upgrade --target="/usr/lib/python2.7/dist-packages"
+RUN pip install glibc
 RUN mkdir /tfpy
 ADD tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl /tfpy/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
 RUN pip install /tfpy/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
