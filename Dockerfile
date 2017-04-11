@@ -39,7 +39,7 @@ RUN pip install -r /requirements.txt
 RUN pip uninstall -y six
 RUN pip install six --upgrade --target="/usr/lib/python2.7/dist-packages"
 RUN pip install glibc
-RUN apt-get upgrade
+RUN apt-get upgrade -y
 RUN mkdir /tfpy
 ADD tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl /tfpy/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
 RUN pip install /tfpy/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
