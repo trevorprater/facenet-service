@@ -44,7 +44,6 @@ ADD tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl /tfpy/tensorflow-1.0.1-cp27-cp
 RUN pip install /tfpy/tensorflow-1.0.1-cp27-cp27mu-linux_x86_64.whl
 
 CMD [ "mkdir", "/models"]
-RUN mkdir /models
 RUN wget https://storage.googleapis.com/youfie-983ce.appspot.com/20170216-091149.zip
 RUN unzip 20170216-091149.zip
 RUN mv 20170216-091149 /models
