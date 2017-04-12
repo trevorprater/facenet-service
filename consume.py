@@ -37,11 +37,6 @@ KAFKA_CONF = {
     }
 }
 
-
-#def print_assignment(consumer, partitions):
-#    logging.info(json.dumps(partitions))
-
-
 def create_new_consumer():
     consumer = Consumer(**KAFKA_CONF)
     consumer.subscribe(['bluefin'])#, on_assign=print_assignment)
