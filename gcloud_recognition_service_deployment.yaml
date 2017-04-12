@@ -11,7 +11,7 @@ spec:
         tier: backend
     spec:
       containers:
-        - image: gcr.io/youfie-983ce/github-trevorprater-facenet-service:3d02615dc777efbd082bb3ae87ebc6d072cf5ae6
+        - image: gcr.io/youfie-983ce/github-trevorprater-facenet-service:94e8282e680b4de0d06ab5e22c9f40a358201a1f
           name: consumer
           env:
             - name: GET_HOSTS_FROM
