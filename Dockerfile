@@ -44,16 +44,14 @@ RUN mkdir /tfpy
 ADD tensorflow-1.1.0rc0-cp27-cp27mu-linux_x86_64.whl /tfpy/tensorflow-1.1.0rc0-cp27-cp27mu-linux_x86_64.whl
 RUN pip install /tfpy/tensorflow-1.1.0rc0-cp27-cp27mu-linux_x86_64.whl
 
-CMD [ "mkdir", "/models"]
+RUN mkdir /models
 RUN wget https://storage.googleapis.com/youfie-983ce.appspot.com/20170216-091149.zip
 RUN unzip 20170216-091149.zip
 RUN mv 20170216-091149 /models
 ARG LIBRDKAFKA_NAME="librdkafka"
 ARG LIBRDKAFKA_VER="0.9.4"
 
-
-run mkdir /workdir
-WORKDIR /workdir
-
-CMD [ "python", "../setup.py install"]
-CMD [ "python", "../consume.py"]
+#run mkdir /workdir
+#WORKDIR /workdir
+CMD [ "python", "setup.py install"]
+CMD [ "python", "consume.py"]
