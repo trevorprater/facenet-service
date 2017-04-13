@@ -38,6 +38,7 @@ KAFKA_CONF = {
     }
 }
 
+
 def create_new_consumer():
     consumer = Consumer(**KAFKA_CONF)
     consumer.subscribe(['bluefin'])
@@ -68,32 +69,43 @@ def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
 
 
 def insert_photos_to_db(photos):
+    logging.exception(
+        "{}: entered insert_photos_to_db function".format(time.time()))
     faces = []
     for photo in photos:
         photo['id'] = str(uuid.uuid4())
         for face in photo['faces']:
-            faces.append(
-                (photo['id'], face['bb']['top_left_x'],
-                 face['bb']['top_left_y'], face['bb']['bottom_right_x'],
-                 face['bb']['bottom_right_y'], '{' + ",".join(
-                     [str(emb) for emb in face['embedding']]) + '}'))
+            faces.append((
+                photo['id'], face['bb']['top_left_x'],
+                face['bb']['top_left_y'], face['bb']['bottom_right_x'],
+                face['bb']['bottom_right_y'],
+                '{' + ",".join([str(emb) for emb in face['embedding']]) + '}'))
+    logging.exception(
+        "{}: created data structures for db insertion".format(time.time()))
 
+    logging.exception("{}: begin insert photos to db".format(time.time()))
     execute_values(
         CUR,
         "INSERT INTO photos(id, url, parent_url, sha256) VALUES %s ON CONFLICT(url, sha256) DO NOTHING",
         [(p['id'], p['url'], p['parent_url'], p['sha256']) for p in photos])
+    logging.exception("{}: end insert photos to db".format(time.time()))
 
+    logging.exception("{}: begin insert faces to db".format(time.time()))
     execute_values(
         CUR,
         "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES %s ON CONFLICT(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y) DO NOTHING",
         faces)
+    logging.exception("{}: end insert faces to db".format(time.time()))
 
+    logging.exception("{}: begin conn.commit()".format(time.time()))
     CONN.commit()
+    logging.exception("{}: end conn.commit()".format(time.time()))
 
 
 def begin_message_consumption(consumer):
     images = []
     while 1:
+        logging.exception("{}: begin mesage consume".format(time.time()))
         msg = consumer.poll(timeout=1.0)
         if msg is None:
             continue
@@ -106,18 +118,27 @@ def begin_message_consumption(consumer):
                 logging.exception(msg.error())
 
         if msg and not msg.error():
+            logging.exception("{}: message received".format(time.time()))
             image = json.loads(msg.value())
+            logging.exception(
+                "{}: begin load and align data".format(time.time()))
             image = load_and_align_data(image, args.image_size, args.margin,
                                         args.gpu_memory)
+            logging.exception(
+                "{}: end load and align data".format(time.time()))
             if len(image['faces']) > 0:
                 face_bytes = np.stack(
                     [face['prewhitened'] for face in image['faces']])
+                logging.exception(
+                    "{}: begin embedding session".format(time.time()))
                 embs = embed_sess.run(
                     embeddings,
                     feed_dict={
                         images_placeholder: face_bytes,
                         phase_train_placeholder: False
                     })
+                logging.exception(
+                    "{}: end embedding session".format(time.time()))
                 for ndx, face in enumerate(image['faces']):
                     bb_dict = dict(
                         zip([
@@ -128,13 +149,15 @@ def begin_message_consumption(consumer):
                         'bb': bb_dict,
                         'embedding': embs[ndx].tolist()
                     })
-                logging.exception("{")
-                logging.exception(
-                    '"num_faces": {}'.format(len(image['faces'])))
-                logging.exception("}")
+                logging.exception('{}: processed {} faces'.format(
+                    time.time(), len(image['faces'])))
                 images.append(image)
                 if len(images) >= 20:
+                    logging.exception(
+                        "{}: calling insert_photos_to_db".format(time.time()))
                     insert_photos_to_db(images)
+                    logging.exception("{}: return from insert_photos_to_db".
+                                      format(time.time()))
                     images = []
 
 
@@ -155,7 +178,7 @@ if __name__ == '__main__':
     threshold = [0.6, 0.7, 0.7]  # three steps' threshold
     factor = 0.709  # scale factor
 
-    logging.info("Loading the model...")
+    logging.exception("{}: loading the model...".format(time.time()))
     with tf.Graph().as_default() as graph:
         with tf.Session() as embed_sess:
             gpu_options = tf.GPUOptions(
@@ -173,6 +196,7 @@ if __name__ == '__main__':
                 with detect_sess.as_default():
                     pnet, rnet, onet = detect_face.create_mtcnn(detect_sess,
                                                                 None)
-                    logging.info("starting the consumer")
+                    logging.exception(
+                        "{}: starting the consumer".format(time.time()))
                     consumer = create_new_consumer()
                     begin_message_consumption(consumer)
