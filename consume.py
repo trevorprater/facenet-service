@@ -13,6 +13,7 @@ import tensorflow as tf
 import numpy as np
 import requests
 import psycopg2
+from psycopg2.extras import execute_values
 from confluent_kafka import Consumer, KafkaError
 
 import facenet
@@ -37,10 +38,9 @@ KAFKA_CONF = {
     }
 }
 
-
 def create_new_consumer():
     consumer = Consumer(**KAFKA_CONF)
-    consumer.subscribe(['bluefin'])  #, on_assign=print_assignment)
+    consumer.subscribe(['bluefin'])
     return consumer
 
 
@@ -68,20 +68,25 @@ def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
 
 
 def insert_photos_to_db(photos):
+    faces = []
     for photo in photos:
-        photo_id = str(uuid.uuid4())
-
-        CUR.execute(
-            "INSERT INTO photos(id, url, parent_url, sha256) VALUES ('{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE id=id".
-            format(photo_id, photo['url'], photo['parent_url'], photo[
-                'sha256']))
+        photo['id'] = str(uuid.uuid4())
         for face in photo['faces']:
-            CUR.execute(
-                "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES ('{}', '{}', '{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE photo_id=photo_id".
-                format(photo_id, face['bb']['top_left_x'], face['bb'][
-                    'top_left_y'], face['bb']['bottom_right_x'], face['bb'][
-                        'bottom_right_y'], '{' + ",".join(
-                            [str(emb) for emb in face['embedding']]) + '}'))
+            faces.append(
+                (photo['id'], face['bb']['top_left_x'],
+                 face['bb']['top_left_y'], face['bb']['bottom_right_x'],
+                 face['bb']['bottom_right_y'], '{' + ",".join(
+                     [str(emb) for emb in face['embedding']]) + '}'))
+
+    execute_values(
+        CUR,
+        "INSERT INTO photos(id, url, parent_url, sha256) VALUES %s ON CONFLICT IGNORE",
+        [(p['id'], p['url'], p['parent_url'], p['sha256']) for p in photos])
+
+    execute_values(
+        CUR,
+        "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES %s ON CONFLICT IGNORE",
+        faces)
 
     CONN.commit()
 
