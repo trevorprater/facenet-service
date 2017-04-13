@@ -94,7 +94,8 @@ def insert_photos_to_db(photos):
     execute_values(
         CUR,
         "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) SELECT val.id, val.top_left_x, val.top_left_y, val.bottom_right_x, val.bottom_right_y, val.feature_vector FROM ( VALUES %s ) val (id:uuid, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) JOIN photos USING (id) ON CONFLICT(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y) DO NOTHING",
-        faces)
+        faces,
+        template="(%s::uuid, %s, %s, %s, %s, %s)")
     logging.exception("{}: end insert faces to db".format(time.time()))
 
     logging.exception("{}: begin conn.commit()".format(time.time()))
