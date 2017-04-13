@@ -93,7 +93,7 @@ def insert_photos_to_db(photos):
     logging.exception("{}: begin insert faces to db".format(time.time()))
     execute_values(
         CUR,
-        "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES %s ON CONFLICT(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y) DO NOTHING",
+        "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) SELECT val.photo_id, val.top_left_x, val.top_left_y, val.bottom_right_x, val.bottom_right_y, val.feature_vector FROM ( VALUES %s ) val (photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) JOIN photos USING (photo_id) ON CONFLICT(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y) DO NOTHING",
         faces)
     logging.exception("{}: end insert faces to db".format(time.time()))
 
