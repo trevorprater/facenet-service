@@ -29,7 +29,7 @@ CUR = CONN.cursor()
 KAFKA_CONF = {
     'bootstrap.servers': '10.142.0.3:9092',
     'group.id': 'bravo',
-    'session.timeout.ms': 6000,
+    'session.timeout.ms': 10000,
     'api.version.request': True,
     'receive.message.max.bytes': 204859424,
     'default.topic.config': {
@@ -37,9 +37,10 @@ KAFKA_CONF = {
     }
 }
 
+
 def create_new_consumer():
     consumer = Consumer(**KAFKA_CONF)
-    consumer.subscribe(['bluefin'])#, on_assign=print_assignment)
+    consumer.subscribe(['bluefin'])  #, on_assign=print_assignment)
     return consumer
 
 
@@ -66,27 +67,27 @@ def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
     return image
 
 
-def insert_photo_to_db(photo):
-    photo_id = str(uuid.uuid4())
+def insert_photos_to_db(photos):
+    for photo in photos:
+        photo_id = str(uuid.uuid4())
 
-    try:
         CUR.execute(
-            "INSERT INTO photos(id, url, parent_url, sha256) VALUES ('{}', '{}', '{}', '{}')".
+            "INSERT INTO photos(id, url, parent_url, sha256) VALUES ('{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE id=id".
             format(photo_id, photo['url'], photo['parent_url'], photo[
                 'sha256']))
         for face in photo['faces']:
             CUR.execute(
-                "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES ('{}', '{}', '{}', '{}', '{}', '{}')".
+                "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES ('{}', '{}', '{}', '{}', '{}', '{}') ON DUPLICATE KEY UPDATE photo_id=photo_id".
                 format(photo_id, face['bb']['top_left_x'], face['bb'][
                     'top_left_y'], face['bb']['bottom_right_x'], face['bb'][
                         'bottom_right_y'], '{' + ",".join(
                             [str(emb) for emb in face['embedding']]) + '}'))
-        CONN.commit()
-    except psycopg2.IntegrityError as e:
-        CONN.rollback()
+
+    CONN.commit()
 
 
 def begin_message_consumption(consumer):
+    images = []
     while 1:
         msg = consumer.poll(timeout=1.0)
         if msg is None:
@@ -95,7 +96,7 @@ def begin_message_consumption(consumer):
         if msg.error():
             if msg.error().code() == KafkaError._PARTITION_EOF:
                 logging.exception("%% %s [%d] reached end at offset %d\n" %
-                                 (msg.topic(), msg.partition(), msg.offset()))
+                                  (msg.topic(), msg.partition(), msg.offset()))
             else:
                 logging.exception(msg.error())
 
@@ -122,10 +123,14 @@ def begin_message_consumption(consumer):
                         'bb': bb_dict,
                         'embedding': embs[ndx].tolist()
                     })
-                logging.info("{")
-                logging.info('"num_faces": {}'.format(len(image['faces'])))
-                logging.info("}")
-                insert_photo_to_db(image)
+                logging.exception("{")
+                logging.exception(
+                    '"num_faces": {}'.format(len(image['faces'])))
+                logging.exception("}")
+                images.append(image)
+                if len(images) >= 100:
+                    insert_photos_to_db(images)
+                    images = []
 
 
 if __name__ == '__main__':
