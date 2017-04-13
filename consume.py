@@ -133,7 +133,7 @@ def begin_message_consumption(consumer):
                     '"num_faces": {}'.format(len(image['faces'])))
                 logging.exception("}")
                 images.append(image)
-                if len(images) >= 100:
+                if len(images) >= 20:
                     insert_photos_to_db(images)
                     images = []
 
