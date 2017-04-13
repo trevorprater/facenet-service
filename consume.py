@@ -80,12 +80,12 @@ def insert_photos_to_db(photos):
 
     execute_values(
         CUR,
-        "INSERT INTO photos(id, url, parent_url, sha256) VALUES %s ON CONFLICT IGNORE",
+        "INSERT INTO photos(id, url, parent_url, sha256) VALUES %s ON CONFLICT(url, sha256) DO NOTHING",
         [(p['id'], p['url'], p['parent_url'], p['sha256']) for p in photos])
 
     execute_values(
         CUR,
-        "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES %s ON CONFLICT IGNORE",
+        "INSERT INTO faces(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y, feature_vector) VALUES %s ON CONFLICT(photo_id, top_left_x, top_left_y, bottom_right_x, bottom_right_y) DO NOTHING",
         faces)
 
     CONN.commit()
