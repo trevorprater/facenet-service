@@ -45,27 +45,38 @@ def create_new_consumer():
     return consumer
 
 
-def load_and_align_data(image, image_size, margin, gpu_memory_fraction):
+def load_and_align_data(pre_detect_images, image_size, margin,
+                        gpu_memory_fraction):
+    images = []
+    for image in pre_detect_images:
+        im = Image.open(BytesIO(base64.b64decode(image['b64_bytes'])))
+        img = misc.fromimage(im, flatten=False, mode='RGB')
+        images.append(img)
 
-    im = Image.open(BytesIO(base64.b64decode(image['b64_bytes'])))
-    img = misc.fromimage(im, flatten=False, mode='RGB')
-    img_size = np.asarray(img.shape)[0:2]
-    bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet, onet,
-                                                threshold, factor)
-    image['faces'] = []
-    for box_ctr, bounding_box in enumerate(bounding_boxes):
-        det = np.squeeze(bounding_boxes[box_ctr, 0:4])
-        bb = np.zeros(4, dtype=np.int32)
-        bb[0] = np.maximum(det[0] - margin / 2, 0)
-        bb[1] = np.maximum(det[1] - margin / 2, 0)
-        bb[2] = np.minimum(det[2] + margin / 2, img_size[1])
-        bb[3] = np.minimum(det[3] + margin / 2, img_size[0])
-        cropped = img[bb[1]:bb[3], bb[0]:bb[2], :]
-        aligned = misc.imresize(
-            cropped, (image_size, image_size), interp='bilinear')
-        prewhitened = facenet.prewhiten(aligned)
-        image['faces'].append({'prewhitened': prewhitened, 'bb': bb})
-    return image
+    results = detect_face.bulk_detect_face(images, 0.05, pnet, rnet, onet,
+                                           threshold, factor)
+    for ctr, res in enumerate(results):
+        pre_detect_images[ctr]['faces'] = []
+        if not res:
+            continue
+        img_size = np.asarray(images[ctr].shape)[0:2]
+        bounding_boxes, _ = res
+        for box_ctr, bounding_box in enumerate(bounding_boxes):
+            det = np.squeeze(bounding_boxes[box_ctr, 0:4])
+            bb = np.zeros(4, dtype=np.int32)
+            bb[0] = np.maximum(det[0] - margin / 2, 0)
+            bb[1] = np.maximum(det[1] - margin / 2, 0)
+            bb[2] = np.minimum(det[2] + margin / 2, img_size[1])
+            bb[3] = np.minimum(det[3] + margin / 2, img_size[0])
+            cropped = images[ctr][bb[1]:bb[3], bb[0]:bb[2], :]
+            aligned = misc.imresize(
+                cropped, (image_size, image_size), interp='bilinear')
+            prewhitened = facenet.prewhiten(aligned)
+            pre_detect_images[ctr]['faces'].append({
+                'prewhitened': prewhitened,
+                'bb': bb
+            })
+    return pre_detect_images
 
 
 def insert_photos_to_db(photos):
@@ -105,6 +116,7 @@ def insert_photos_to_db(photos):
 
 def begin_message_consumption(consumer):
     images = []
+    pre_detect_images = []
     while 1:
         logging.exception("{}: begin mesage consume".format(time.time()))
         msg = consumer.poll(timeout=1.0)
@@ -121,45 +133,57 @@ def begin_message_consumption(consumer):
         if msg and not msg.error():
             logging.exception("{}: message received".format(time.time()))
             image = json.loads(msg.value())
-            logging.exception(
-                "{}: begin load and align data".format(time.time()))
-            image = load_and_align_data(image, args.image_size, args.margin,
-                                        args.gpu_memory)
-            logging.exception(
-                "{}: end load and align data".format(time.time()))
-            if len(image['faces']) > 0:
-                face_bytes = np.stack(
-                    [face['prewhitened'] for face in image['faces']])
+            pre_detect_images.append(image)
+
+            if len(pre_detect_images) >= 20:
                 logging.exception(
-                    "{}: begin embedding session".format(time.time()))
+                    "{}: begin load and align data".format(time.time()))
+                post_detect_images = load_and_align_data(
+                    pre_detect_images, args.image_size, args.margin,
+                    args.gpu_memory)
+                logging.exception(
+                    "{}: end load and align data".format(time.time()))
+
+                prewhitened_arr = []
+                face_images = [img for img in post_detect_images if img is not None and \
+                        len(img['faces']) > 0]
+                for image in face_images:
+                    prewhitened_array.extend(
+                        [face['prewhitened'] for face in image['faces']])
+
+                face_bytes = np.stack(prewhitened_arr)
                 embs = embed_sess.run(
                     embeddings,
                     feed_dict={
                         images_placeholder: face_bytes,
                         phase_train_placeholder: False
                     })
-                logging.exception(
-                    "{}: end embedding session".format(time.time()))
-                for ndx, face in enumerate(image['faces']):
-                    bb_dict = dict(
-                        zip([
-                            'top_left_x', 'top_left_y', 'bottom_right_x',
-                            'bottom_right_y'
-                        ], face['bb'].tolist()))
-                    image['faces'][ndx].update({
-                        'bb': bb_dict,
-                        'embedding': embs[ndx].tolist()
-                    })
-                logging.exception('{}: processed {} faces'.format(
-                    time.time(), len(image['faces'])))
-                images.append(image)
-                if len(images) >= 20:
-                    logging.exception(
-                        "{}: calling insert_photos_to_db".format(time.time()))
-                    insert_photos_to_db(images)
-                    logging.exception("{}: return from insert_photos_to_db".
-                                      format(time.time()))
-                    images = []
+
+                for img_ndx, image in enumerate(face_images):
+                    for ndx, face in enumerate(image['faces']):
+                        bb_dict = dict(
+                            zip([
+                                'top_left_x', 'top_left_y', 'bottom_right_x',
+                                'bottom_right_y'
+                            ], face['bb'].tolist()))
+
+                        image['faces'][ndx].update(
+                            {
+                                'bb': bb_dict,
+                                'embedding': embs[img_ndx + ndx].tolist()
+                            })
+
+                    images.append(image)
+
+                    if len(images) >= 20:
+                        logging.exception("{}: calling insert_photos_to_db".
+                                          format(time.time()))
+                        insert_photos_to_db(images)
+                        logging.exception(
+                            "{}: return from insert_photos_to_db".format(
+                                time.time()))
+                        images = []
+                pre_detect_images = []
 
 
 if __name__ == '__main__':
