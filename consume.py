@@ -148,7 +148,7 @@ def begin_message_consumption(consumer):
                 face_images = [img for img in post_detect_images if img is not None and \
                         len(img['faces']) > 0]
                 for image in face_images:
-                    prewhitened_array.extend(
+                    prewhitened_arr.extend(
                         [face['prewhitened'] for face in image['faces']])
 
                 face_bytes = np.stack(prewhitened_arr)
