@@ -26,7 +26,8 @@ class IndexClient(object):
         mappings = []
         for ctr, face in enumerate(cursor):
             if ctr % 10000 == 0:
-                print 'read 10,000 rows'
+                pct_complete = float(ctr)/num_faces * 100
+                print 'read {} rows from the DB. {}% complete'.format(pct_complete)
             aindex.add_item(ctr, face['feature_vector'])
             mappings.append(face['id'])
         cursor.close()
@@ -70,7 +71,12 @@ class IndexClient(object):
             cursor = self.conn.cursor(
                 cursor_factory=psycopg2.extras.RealDictCursor)
             cursor.execute(sql)
-            index_id = int(cursor.fetchone()['index_id'])
+            query_ctr += 1
+            try:
+                index_id = int(cursor.fetchone()['index_id'])
+            except TypeError as e:
+                print 'An error occurred; the face you entered was not found...\n'
+                continue
             cursor.close()
             results, distances = u.get_nns_by_item(
                 index_id,
@@ -93,7 +99,6 @@ class IndexClient(object):
                 url = cursor.fetchone()['url']
                 print '{}, dist = {}'.format(url, distances[ctr])
             cursor.close()
-            query_ctr += 1
 
 
 if __name__ == '__main__':
