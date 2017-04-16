@@ -11,12 +11,15 @@ from annoy import AnnoyIndex
 class IndexClient(object):
     def __init__(self):
         self.db_uri = "postgres://postgres@localhost:5432/facenet"
-        self.conn = psycopg2.connect(self.db_uri, cursor_factory=psycopg2.extras.RealDictCursor)
+        self.conn = psycopg2.connect(
+            self.db_uri, cursor_factory=psycopg2.extras.RealDictCursor)
 
     def index_faces(self, num_faces, num_trees=500, dimensionality=128):
-        sql = "select faces.id, photos.url, faces.feature_vector, faces.photo_id FROM faces LEFT JOIN photos ON photos.id=faces.photo_id LIMIT {}".format(num_faces)
+        sql = "select faces.id, photos.url, faces.feature_vector, faces.photo_id FROM faces LEFT JOIN photos ON photos.id=faces.photo_id LIMIT {}".format(
+            num_faces)
 
-        cursor = self.conn.cursor('crsr', cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor = self.conn.cursor(
+            'crsr', cursor_factory=psycopg2.extras.RealDictCursor)
         cursor.execute(sql)
         aindex = AnnoyIndex(dimensionality)
         mappings = []
@@ -42,9 +45,13 @@ class IndexClient(object):
         cursor.close()
         self.conn.close()
 
-
-    def search_index(self, filename, face_id, num_neighbors=100, search_k=-1, dimensionality=128):
-        ndx_uuid = filename.replace('.ann','')
+    def search_index(self,
+                     filename,
+                     face_id,
+                     num_neighbors=100,
+                     search_k=-1,
+                     dimensionality=128):
+        ndx_uuid = filename.replace('.ann', '')
         u = AnnoyIndex(dimensionality)
         print 'loading index'
         u.load(filename)
@@ -57,14 +64,21 @@ class IndexClient(object):
                 print '\n please enter a face_id to query'
                 face_id = sys.stdin.readline().strip()
 
-            sql = "select index_id from ndx_mappings where id = '{}' and face_id = '{}';".format(ndx_uuid, face_id)
-            cursor = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            sql = "select index_id from ndx_mappings where id = '{}' and face_id = '{}';".format(
+                ndx_uuid, face_id)
+            cursor = self.conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor)
             cursor.execute(sql)
             index_id = int(cursor.fetchone()['index_id'])
             cursor.close()
-            results, distances = u.get_nns_by_item(index_id, num_neighbors, search_k=search_k, include_distances=True)
+            results, distances = u.get_nns_by_item(
+                index_id,
+                num_neighbors,
+                search_k=search_k,
+                include_distances=True)
 
-            cursor = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = self.conn.cursor(
+                cursor_factory=psycopg2.extras.RealDictCursor)
             output = []
             sql = "SELECT face_id FROM ndx_mappings WHERE id = '{}' AND index_id = '{}'"
             photosql = "SELECT photo_id FROM faces where id = '{}'"
@@ -83,4 +97,3 @@ class IndexClient(object):
 
 if __name__ == '__main__':
     fire.Fire(IndexClient)
-
