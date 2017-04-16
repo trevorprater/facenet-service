@@ -15,7 +15,8 @@ class IndexClient(object):
             self.db_uri, cursor_factory=psycopg2.extras.RealDictCursor)
 
     def index_faces(self, num_faces, num_trees=500, dimensionality=128):
-        sql = "select faces.id, photos.url, faces.feature_vector, faces.photo_id FROM faces LEFT JOIN photos ON photos.id=faces.photo_id LIMIT {}".format(
+        sql = "select faces.id, photos.url, faces.feature_vector, faces.photo_id FROM faces LEFT JOIN photos ON \
+                photos.id=faces.photo_id LIMIT {}".format(
             num_faces)
 
         cursor = self.conn.cursor(
