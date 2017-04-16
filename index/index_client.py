@@ -27,10 +27,10 @@ class IndexClient(object):
         cursor.close()
         cursor = self.conn.cursor()
 
-        ndx_uuid = str(uuid.uuid4())
         print 'rows added to index. building index...'
         aindex.build(num_trees)
         print 'index built. saving index...'
+        ndx_uuid = str(uuid.uuid4())
         aindex.save('{}.ann'.format(ndx_uuid))
         print 'index saved to {}.ann'.format(ndx_uuid)
 
@@ -40,6 +40,7 @@ class IndexClient(object):
         self.conn.commit()
         cursor.close()
         self.conn.close()
+
 
     def search_index(self, filename, face_id, num_neighbors=100, search_k=-1, dimensionality=128):
         ndx_uuid = filename.replace('.ann','')
@@ -74,19 +75,10 @@ class IndexClient(object):
                 cursor.execute(urlsql.format(photo_id))
                 url = cursor.fetchone()['url']
                 print '{}, dist = {}'.format(url, distances[ctr])
-
+            cursor.close()
             query_ctr += 1
 
 
 if __name__ == '__main__':
     fire.Fire(IndexClient)
-
-            
-
-
-
-
-
-
-
 
