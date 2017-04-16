@@ -1,3 +1,4 @@
+import sys
 import uuid
 from pprint import pprint
 
@@ -53,6 +54,7 @@ class IndexClient(object):
         while True:
             # to allow for successive queries w/o reloading the index from disk
             if query_ctr > 0:
+                print '\n please enter a face_id to query'
                 face_id = sys.stdin.readline().strip()
 
             sql = "select index_id from ndx_mappings where id = '{}' and face_id = '{}';".format(ndx_uuid, face_id)
