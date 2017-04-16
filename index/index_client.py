@@ -14,7 +14,7 @@ class IndexClient(object):
         self.conn = psycopg2.connect(
             self.db_uri, cursor_factory=psycopg2.extras.RealDictCursor)
 
-    def index_faces(self, num_faces, num_trees=500, dimensionality=128):
+    def index_faces(self, num_faces, num_trees=2000, dimensionality=128):
         sql = "select faces.id, photos.url, faces.feature_vector, faces.photo_id FROM faces LEFT JOIN photos ON \
                 photos.id=faces.photo_id LIMIT {}".format(
             num_faces)
@@ -27,7 +27,7 @@ class IndexClient(object):
         for ctr, face in enumerate(cursor):
             if ctr % 10000 == 0:
                 pct_complete = float(ctr)/num_faces * 100
-                print 'read {} rows from the DB. {}% complete'.format(pct_complete)
+                print 'read {} rows from the DB. {}% complete'.format(ctr, pct_complete)
             aindex.add_item(ctr, face['feature_vector'])
             mappings.append(face['id'])
         cursor.close()
@@ -97,7 +97,7 @@ class IndexClient(object):
                 photo_id = cursor.fetchone()['photo_id']
                 cursor.execute(urlsql.format(photo_id))
                 url = cursor.fetchone()['url']
-                print '{}, dist = {}'.format(url, distances[ctr])
+                print '{}, {}, dist = {}'.format(url, face_id, distances[ctr])
             cursor.close()
 
 
